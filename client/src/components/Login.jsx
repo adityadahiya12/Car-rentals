@@ -1,6 +1,13 @@
 import React, { useState } from "react";
+import { useAppContext } from "../context/AppContext";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
-const Login = ({ setShowLogin }) => {
+const Login = () => {
+
+  const { setShowLogin, axios, setToken } = useAppContext();
+  const navigate = useNavigate();
+
   const [state, setState] = useState("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -8,6 +15,35 @@ const Login = ({ setShowLogin }) => {
 
   const onSubmitHandler = async (event) => {
     event.preventDefault();
+
+    try {
+      const { data } = await axios.post(
+        `/api/user/${state}`,
+        state === "register"
+          ? { name, email, password }
+          : { email, password }
+      );
+
+      if (data.success) {
+        toast.success(data.message);
+
+        setToken(data.token);
+        localStorage.setItem("token", data.token);
+
+        setShowLogin(false);
+        navigate("/");
+
+      } else {
+        toast.error(data.message);
+      }
+
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error.message ||
+        `Failed to ${state === "register" ? "register" : "login"}`
+      );
+    }
   };
 
   return (
@@ -28,7 +64,7 @@ const Login = ({ setShowLogin }) => {
           />
         </div>
 
-        {/* Right Form */}
+        {/* Form */}
         <form
           onSubmit={onSubmitHandler}
           className="w-full md:w-1/2 flex flex-col gap-4 p-8 bg-white"
@@ -39,66 +75,55 @@ const Login = ({ setShowLogin }) => {
           </p>
 
           {state === "register" && (
-            <div className="w-full">
-              <label className="text-sm font-medium">Name</label>
+            <div>
+              <label>Name</label>
               <input
-                onChange={(e) => setName(e.target.value)}
                 value={name}
-                placeholder="type here"
-                className="border border-gray-300 rounded w-full p-2 mt-1 outline-primary"
-                type="text"
+                onChange={(e) => setName(e.target.value)}
+                className="border p-2 w-full"
                 required
               />
             </div>
           )}
 
-          <div className="w-full">
-            <label className="text-sm font-medium">Email</label>
+          <div>
+            <label>Email</label>
             <input
-              onChange={(e) => setEmail(e.target.value)}
-              value={email}
-              placeholder="type here"
-              className="border border-gray-300 rounded w-full p-2 mt-1 outline-primary"
               type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="border p-2 w-full"
               required
             />
           </div>
 
-          <div className="w-full">
-            <label className="text-sm font-medium">Password</label>
+          <div>
+            <label>Password</label>
             <input
-              onChange={(e) => setPassword(e.target.value)}
-              value={password}
-              placeholder="type here"
-              className="border border-gray-300 rounded w-full p-2 mt-1 outline-primary"
               type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="border p-2 w-full"
               required
             />
           </div>
 
-          {state === "register" ? (
-            <p className="text-sm text-gray-600">
-              Already have an account?{" "}
-              <span
-                onClick={() => setState("login")}
-                className="text-primary font-medium cursor-pointer"
-              >
-                Login
-              </span>
-            </p>
-          ) : (
-            <p className="text-sm text-gray-600">
-              Don't have an account?{" "}
-              <span
-                onClick={() => setState("register")}
-                className="text-primary font-medium cursor-pointer"
-              >
-                Register
-              </span>
-            </p>
-          )}
+          <p className="text-sm">
+            {state === "register"
+              ? "Already have an account?"
+              : "Don't have an account?"}
 
-          <button className="bg-primary hover:bg-primary/90 transition-all text-white w-full py-2 rounded-md font-medium">
+            <span
+              onClick={() =>
+                setState(state === "login" ? "register" : "login")
+              }
+              className="text-primary cursor-pointer ml-2"
+            >
+              {state === "login" ? "Register" : "Login"}
+            </span>
+          </p>
+
+          <button className="bg-primary text-white py-2 rounded">
             {state === "register" ? "Create Account" : "Login"}
           </button>
         </form>
