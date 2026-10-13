@@ -1,50 +1,56 @@
 import React, { useState } from "react";
-import { useAppContext } from "../context/AppContext";
-import { useNavigate } from "react-router-dom";
-import toast from "react-hot-toast";
+import axios from "axios";
+import { useApp } from "../context/AppContext";
 
-const Login = () => {
-
-  const { setShowLogin, axios, setToken } = useAppContext();
-  const navigate = useNavigate();
-
+const Login = ({ setShowLogin }) => {
+  const { backendUrl, login } = useApp();
   const [state, setState] = useState("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const onSubmitHandler = async (event) => {
     event.preventDefault();
+    setErrorMessage("");
+    setLoading(true);
 
     try {
-      const { data } = await axios.post(
-        `/api/user/${state}`,
-        state === "register"
-          ? { name, email, password }
-          : { email, password }
-      );
+      if (state === "register") {
+        const { data } = await axios.post(`${backendUrl}/api/user/register`, {
+          name,
+          email,
+          password,
+        });
 
-      if (data.success) {
-        toast.success(data.message);
-
-        setToken(data.token);
-        localStorage.setItem("token", data.token);
-
-        setShowLogin(false);
-        navigate("/");
-
+        if (data.success) {
+          login(data.token, data.user);
+          setShowLogin(false);
+        } else {
+          setErrorMessage(data.message || "Registration failed");
+        }
       } else {
-        toast.error(data.message);
-      }
+        const { data } = await axios.post(`${backendUrl}/api/user/login`, {
+          email,
+          password,
+        });
 
-    } catch (error) {
-      console.error(error);
-      toast.error(
-        error.message ||
-        `Failed to ${state === "register" ? "register" : "login"}`
-      );
+        if (data.success) {
+          login(data.token, data.user);
+          setShowLogin(false);
+        } else {
+          setErrorMessage(data.message || "Login failed");
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      setErrorMessage(err.response?.data?.message || err.message || "Something went wrong");
+    } finally {
+      setLoading(false);
     }
   };
+
 
   return (
     <div
@@ -64,7 +70,7 @@ const Login = () => {
           />
         </div>
 
-        {/* Form */}
+        {/* Right Form */}
         <form
           onSubmit={onSubmitHandler}
           className="w-full md:w-1/2 flex flex-col gap-4 p-8 bg-white"
@@ -74,57 +80,77 @@ const Login = () => {
             {state === "login" ? "Login" : "Sign Up"}
           </p>
 
+          {errorMessage && (
+            <div className="bg-red-50 border border-red-200 text-red-600 px-3 py-2 rounded text-sm text-center">
+              {errorMessage}
+            </div>
+          )}
+
           {state === "register" && (
-            <div>
-              <label>Name</label>
+            <div className="w-full">
+              <label className="text-sm font-medium">Name</label>
               <input
-                value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="border p-2 w-full"
+                value={name}
+                placeholder="type here"
+                className="border border-gray-300 rounded w-full p-2 mt-1 outline-primary"
+                type="text"
                 required
               />
             </div>
           )}
 
-          <div>
-            <label>Email</label>
+          <div className="w-full">
+            <label className="text-sm font-medium">Email</label>
             <input
-              type="email"
-              value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="border p-2 w-full"
+              value={email}
+              placeholder="type here"
+              className="border border-gray-300 rounded w-full p-2 mt-1 outline-primary"
+              type="email"
               required
             />
           </div>
 
-          <div>
-            <label>Password</label>
+          <div className="w-full">
+            <label className="text-sm font-medium">Password</label>
             <input
-              type="password"
-              value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="border p-2 w-full"
+              value={password}
+              placeholder="type here"
+              className="border border-gray-300 rounded w-full p-2 mt-1 outline-primary"
+              type="password"
               required
             />
           </div>
 
-          <p className="text-sm">
-            {state === "register"
-              ? "Already have an account?"
-              : "Don't have an account?"}
+          {state === "register" ? (
+            <p className="text-sm text-gray-600">
+              Already have an account?{" "}
+              <span
+                onClick={() => setState("login")}
+                className="text-primary font-medium cursor-pointer"
+              >
+                Login
+              </span>
+            </p>
+          ) : (
+            <p className="text-sm text-gray-600">
+              Don't have an account?{" "}
+              <span
+                onClick={() => setState("register")}
+                className="text-primary font-medium cursor-pointer"
+              >
+                Register
+              </span>
+            </p>
+          )}
 
-            <span
-              onClick={() =>
-                setState(state === "login" ? "register" : "login")
-              }
-              className="text-primary cursor-pointer ml-2"
-            >
-              {state === "login" ? "Register" : "Login"}
-            </span>
-          </p>
-
-          <button className="bg-primary text-white py-2 rounded">
-            {state === "register" ? "Create Account" : "Login"}
+          <button 
+            disabled={loading}
+            className="bg-primary hover:bg-primary/90 disabled:opacity-50 transition-all text-white w-full py-2 rounded-md font-medium cursor-pointer"
+          >
+            {loading ? "Processing..." : state === "register" ? "Create Account" : "Login"}
           </button>
         </form>
       </div>

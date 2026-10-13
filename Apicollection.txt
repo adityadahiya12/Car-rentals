@@ -1,0 +1,38 @@
+## Dahiya Car Rental APIs
+
+Base URL: `http://localhost:3000`
+
+### General
+- `GET /` — Server health check
+
+### User APIs
+- `POST /api/user/register` — Register  
+  Body: `name`, `email`, `password`
+- `POST /api/user/login` — Login  
+  Body: `email`, `password`
+- `GET /api/user/data` — Current user 🔒
+- `GET /api/user/cars` — Available cars
+- `GET /api/user/cars/:id` — Car details
+- `POST /api/user/book` — Book car 🔒  
+  Body: `carId`, `pickupDate`, `returnDate`
+- `GET /api/user/my-bookings` — User bookings 🔒
+
+### Owner APIs
+- `POST /api/owner/change-role` — Become an owner 🔒
+- `POST /api/owner/add-car` — Add car with image 🔒  
+  `multipart/form-data`: `image`, `carData`
+- `GET /api/owner/cars` — Owner’s cars 🔒
+- `POST /api/owner/toggle-car` — Toggle availability 🔒
+- `POST /api/owner/delete-car` — Delete car 🔒
+- `GET /api/owner/bookings` — Owner bookings 🔒
+- `POST /api/owner/change-status` — Change booking status 🔒
+- `GET /api/owner/dashboard` — Dashboard statistics 🔒
+
+🔒 Protected endpoints require:
+
+```http
+Authorization: Bearer <token>
+```
+
+There are **16 endpoints total**.
+

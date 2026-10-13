@@ -1,9 +1,7 @@
 import React, { useState } from "react";
-import { Link, useLocation , useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { assets } from "../assets/assets";
-import { useAppContext } from "../context/AppContext";
-import toast from "react-hot-toast";
-import { motion } from "motion/react";
+import { useApp } from "../context/AppContext";
 
 const menuLinks = [
   { name: "Home", path: "/" },
@@ -11,52 +9,21 @@ const menuLinks = [
   { name: "My Bookings", path: "/mybookings" },
 ];
 
-const Navbar = () => {
-
-  const { setShowLogin, user, logout , isOwner , axios, setIsOwner} = useAppContext();
+const Navbar = ({ setShowLogin }) => {
+  const { user, token, logout } = useApp();
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-  const changeRole = async () => {
-  try {
-    const token = localStorage.getItem("token"); // ✅ ensure token
-
-    const { data } = await axios.post(
-      "/api/owner/change-role",
-      {},
-      {
-        headers: {
-          Authorization: token, // ✅ force send token
-        },
-      }
-    );
-
-    if (data.success) {
-      setIsOwner(true);
-      toast.success(data.message);
-      navigate("/owner"); // ✅ better UX
-    } else {
-      toast.error(data.message);
-    }
-
-  } catch (error) {
-    console.log(error);
-    toast.error(error.response?.data?.message || "Failed to change role");
-  }
-};
 
   return (
-    <motion.div
-    initial={{y: -20 , opacity: 0}}
-    animate={{y: 0 , opacity: 1}}
-    transition={{duration: 0.5}}
+    <div
       className={`flex items-center justify-between px-6 md:px-16 lg:px-24 xl:px-32 py-4 text-gray-700 border-b border-borderColor relative transition-all duration-300 ${
         location.pathname === "/" ? "bg-light" : "bg-white"
       }`}
     >
       {/* Logo */}
       <Link to="/">
-        <motion.img whileHover={{scale: 1.05}} src={assets.logo} alt="Logo" className="h-8" />
+        <img src={assets.logo} alt="Logo" className="h-8" />
       </Link>
 
       {/* Desktop Menu */}
@@ -79,6 +46,21 @@ const Navbar = () => {
             {link.name}
           </Link>
         ))}
+        {/* Mobile auth buttons */}
+        <div className="sm:hidden flex flex-col gap-3 mt-4 w-full">
+          <button onClick={() => { setOpen(false); navigate('/owner'); }} className="text-left font-medium text-gray-600 hover:text-primary">
+            Dashboard
+          </button>
+          {token ? (
+            <button onClick={() => { logout(); setOpen(false); }} className="w-full text-center px-4 py-2 border border-red-500 text-red-500 rounded-lg">
+              Logout
+            </button>
+          ) : (
+            <button onClick={() => { setShowLogin(true); setOpen(false); }} className="w-full text-center px-4 py-2 bg-primary text-white rounded-lg">
+              Login
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Search bar - Desktop */}
@@ -93,20 +75,33 @@ const Navbar = () => {
 
       {/* Right Buttons */}
       <div className="hidden sm:flex items-center gap-6">
-        <button onClick={()=> isOwner ? navigate('/owner') : changeRole()} className="cursor-pointer hover:text-primary transition">
-          {isOwner ? "Dashboard" : "List Your Cars"}
+        <button onClick={() => navigate('/owner')} className="cursor-pointer hover:text-primary transition">
+          Dashboard
         </button>
-        <button onClick={()=> { user ? logout() : setShowLogin(true)}} className="cursor-pointer px-8 py-2 bg-primary hover:bg-primary-dull transition-all text-white rounded-lg">
-          {user ? "Logout" : "Login"}
-        </button>
+        {token ? (
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-medium text-gray-700">
+              Hi, {user?.name || "User"}
+            </span>
+            <button 
+              onClick={logout} 
+              className="cursor-pointer px-4 py-1.5 border border-red-400 text-red-500 hover:bg-red-50 transition-all rounded-lg text-sm"
+            >
+              Logout
+            </button>
+          </div>
+        ) : (
+          <button onClick={() => setShowLogin(true)} className="cursor-pointer px-8 py-2 bg-primary hover:bg-primary-dull transition-all text-white rounded-lg">
+            Login
+          </button>
+        )}
       </div>
 
       {/* Mobile Buttons */}
-      
       <button className="sm:hidden cursor-pointer" aria-label="Menu" onClick={() => setOpen(!open)}>
         <img src={open ? assets.close_icon : assets.menu_icon} alt="menu" className="w-4" />
       </button>
-    </motion.div>
+    </div>
   );
 };
 

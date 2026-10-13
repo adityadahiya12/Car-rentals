@@ -1,30 +1,41 @@
 import React, { useEffect, useState } from "react";
-import { assets } from "../assets/assets";
+import axios from "axios";
+import { assets, dummyMyBookingsData } from "../assets/assets";
 import Title from "../components/Title";
-import { useAppContext } from "../context/AppContext";
-import toast from "react-hot-toast";
-const MyBookings = () => {
+import { useApp } from "../context/AppContext";
 
-  const { user, currency, axios } = useAppContext();
+const MyBookings = () => {
   const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const { backendUrl, token } = useApp();
+  const currency = import.meta.env.VITE_CURRENCY || "$";
 
   const fetchMyBooking = async () => {
+    if (!token) {
+      setBookings(dummyMyBookingsData);
+      return;
+    }
     try {
-      const { data } = await axios.get("/api/bookings/user");
-      if (data.success) {
-        setBookings(data.bookings)
-      }else{
-        toast.error(data.message);  
+      setLoading(true);
+      const { data } = await axios.get(`${backendUrl}/api/user/my-bookings`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (data.success && data.bookings && data.bookings.length > 0) {
+        setBookings(data.bookings);
+      } else {
+        setBookings(data.bookings || dummyMyBookingsData);
       }
-
-    }catch (error) {
-      toast.error(error.message);
+    } catch (err) {
+      console.log("Could not fetch user bookings, showing demo bookings:", err.message);
+      setBookings(dummyMyBookingsData);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-     user && fetchMyBooking();
-  }, [user]);
+    fetchMyBooking();
+  }, [token]);
 
   return (
     <div className="px-6 md:px-16 lg:px-24 xl:px-32 2xl:px-48 mt-16 text-sm max-w-7xl">
@@ -44,16 +55,16 @@ const MyBookings = () => {
             <div className="md:col-span-1">
               <div className="rounded-md overflow-hidden mb-3">
                 <img
-                  src={booking.car.image}
+                  src={booking.car?.image || assets.main_car}
                   alt=""
                   className="w-full h-auto aspect-video object-cover"
                 />
               </div>
               <p className="text-lg font-medium mt-2">
-                {booking.car.brand} {booking.car.model}
+                {booking.car?.brand || "Car"} {booking.car?.model || "Model"}
               </p>
-              <p className="text-gray">
-                {booking.car.year} • {booking.car.category} • {booking.car.location}
+              <p className="text-gray-500">
+                {booking.car?.year} • {booking.car?.category} • {booking.car?.location}
               </p>
             </div>
 
